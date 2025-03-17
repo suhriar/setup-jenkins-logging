@@ -41,7 +41,7 @@ services:
       - "$HOME:/home"
     restart: on-failure
 
-  jenkins-nginx:
+  nginx:
     image: nginx:stable
     container_name: nginx
     depends_on:
