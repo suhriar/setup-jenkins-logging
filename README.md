@@ -41,7 +41,7 @@ This will start:
 ### 3️⃣ Get Jenkins Initial Admin Password
 After the services are running, retrieve the Jenkins admin password:
 ```sh
-docker logs jenkins-blueocean | grep -A 5 'Please use the following password'
+docker logs jenkins-blueocean
 ```
 Copy the password and use it to log in at `http://localhost:8080`.
 
