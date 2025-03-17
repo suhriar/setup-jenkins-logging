@@ -1,0 +1,84 @@
+version: '3.9'
+services:
+  jenkins-docker:
+    image: docker:dind
+    container_name: jenkins-docker
+    privileged: true
+    networks:
+      jenkins:
+        aliases:
+          - docker
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - "2376:2376"
+      - "3000:3000"
+      - "5000:5000"
+    restart: always
+    command: [ "--storage-driver", "overlay2" ]
+
+  jenkins-blueocean:
+    image: myjenkins-blueocean:latest
+    container_name: jenkins-blueocean
+    depends_on:
+      - jenkins-docker
+    networks:
+      - jenkins
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+      - JAVA_OPTS=-Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+      - "$HOME:/home"
+    restart: on-failure
+
+  jenkins-nginx:
+    image: nginx:stable
+    container_name: nginx
+    depends_on:
+      - jenkins-blueocean
+    networks:
+      - jenkins
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d/
+    restart: on-failure
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    networks:
+      - jenkins
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    networks:
+      - jenkins
+    environment:
+      - GF_SERVER_HTTP_PORT=3030
+    ports:
+      - "3030:3030"
+    restart: always
+
+networks:
+  jenkins:
+
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:
